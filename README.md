@@ -1,6 +1,6 @@
 # Task Manager — управління проєктами та завданнями
 
-Це односторінковий додаток (SPA) для управління проєктами та завданнями всередині них.  
+Це односторінковий додаток (SPA) для управління проєктами та завданнями всередині них.
 
 ## Основний функціонал
 
@@ -27,23 +27,23 @@
 
 src/
 ├── assets/
-│   └── main.scss
+│ └── main.scss
 ├── components/
-│   ├── modals/
-│   │   └── TaskModal.vue
-│   ├── ProjectTable.vue
-│   ├── TaskTable.vue
-│   └── KanbanBoard.vue
+│ ├── modals/
+│ │ └── TaskModal.vue
+│ ├── ProjectTable.vue
+│ ├── TaskTable.vue
+│ └── KanbanBoard.vue
 ├── router/
-│   └── index.ts
+│ └── index.ts
 ├── stores/
-│   ├── projects.ts
-│   └── tasks.ts
+│ ├── projects.ts
+│ └── tasks.ts
 ├── types/
-│   └── index.ts
+│ └── index.ts
 ├── views/
-│   ├── HomeView.vue
-│   └── ProjectView.vue
+│ ├── HomeView.vue
+│ └── ProjectView.vue
 ├── App.vue
 └── main.ts
 
@@ -63,4 +63,3 @@ src/
    npm run dev
 
    Додаток буде доступний за адресою: http://localhost:3001
-
