@@ -20,29 +20,30 @@
 - **Pinia** — менеджер стану + плагін `pinia-plugin-persistedstate` для localStorage
 - **Vue Router** — навігація між сторінками
 - **SCSS** — стилізація (змінні, глобальні стилі)
-- **Drag & Drop** — нативний HTML5 Drag & Drop (без додаткових бібліотек)
+- **Drag & Drop** — нативний Drag & Drop
 - **Vite** — інструмент збірки
 
 ## Структура проєкту
 
 src/
-├── assets/ # глобальні стилі (main.scss)
-├── components/ # перевикористовувані компоненти
-│ ├── modals/
-│ │ └── TaskModal.vue
-│ ├── ProjectTable.vue
-│ ├── TaskTable.vue
-│ └── KanbanBoard.vue
+├── assets/
+│   └── main.scss
+├── components/
+│   ├── modals/
+│   │   └── TaskModal.vue
+│   ├── ProjectTable.vue
+│   ├── TaskTable.vue
+│   └── KanbanBoard.vue
 ├── router/
-│ └── index.ts
+│   └── index.ts
 ├── stores/
-│ ├── projects.ts
-│ └── tasks.ts
+│   ├── projects.ts
+│   └── tasks.ts
 ├── types/
-│ └── index.ts # типи Project, Task
+│   └── index.ts
 ├── views/
-│ ├── HomeView.vue # список проєктів
-│ └── ProjectView.vue # деталі проєкту
+│   ├── HomeView.vue
+│   └── ProjectView.vue
 ├── App.vue
 └── main.ts
 
