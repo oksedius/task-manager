@@ -7,9 +7,6 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Дані розробки
-db.json
-
 # Залежності
 node_modules
 dist
