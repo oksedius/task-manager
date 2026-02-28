@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:server": "json-server --watch db.json --port 3001",
+    "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\"",
     "build": "vue-tsc -b && vite build",
-    "preview": "vite preview",
-    "dev:server": "json-server --watch db.json --port 3000",
-    "dev:all": "concurrently \"npm run dev\" \"npm run dev:server\""
+    "preview": "vite preview"
   },
   "dependencies": {
     "axios": "^1.13.5",
