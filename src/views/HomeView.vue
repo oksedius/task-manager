@@ -2,53 +2,62 @@
   <div class="home-page">
     <h1>Мої проєкти</h1>
 
-    <div class="controls">
-      <input
-        v-model="searchQuery"
-        placeholder="Пошук за назвою..."
-        class="search-input"
-      />
-      <button @click="showAddProjectModal = true" class="btn btn-primary">
-        + Додати проєкт
-      </button>
+    <div v-if="projectsStore.loading" class="loading">
+      Завантаження проєктів...
     </div>
+    <div v-else-if="projectsStore.error" class="error-message">
+      {{ projectsStore.error }}
+      <button @click="projectsStore.fetchProjects()">Спробувати ще раз</button>
+    </div>
+    <div v-else>
+      <div class="controls">
+        <input
+          v-model="searchQuery"
+          placeholder="Пошук за назвою..."
+          class="search-input"
+        />
+        <button @click="showAddProjectModal = true" class="btn btn-primary">
+          + Додати проєкт
+        </button>
+      </div>
 
-    <ProjectTable :projects="filteredProjects" @row-click="goToProject" />
+      <ProjectTable :projects="filteredProjects" @row-click="goToProject" />
 
-    <!-- Модальне вікно створення проєкту -->
-    <div
-      v-if="showAddProjectModal"
-      class="modal-overlay"
-      @click.self="closeModal"
-    >
-      <div class="modal-content">
-        <h2>Новий проєкт</h2>
+      <!-- Модальне вікно створення проєкту -->
+      <div
+        v-if="showAddProjectModal"
+        class="modal-overlay"
+        @click.self="closeModal"
+      >
+        <div class="modal-content">
+          <h2>Новий проєкт</h2>
 
-        <div class="form-group">
-          <label>Назва проєкту *</label>
-          <input
-            v-model="newProject.name"
-            placeholder="Наприклад: Вебсайт компанії"
-          />
-          <div v-if="nameError" class="error">{{ nameError }}</div>
-        </div>
+          <div class="form-group">
+            <label>Назва проєкту *</label>
+            <input
+              v-model="newProject.name"
+              placeholder="Наприклад: Вебсайт компанії"
+            />
+            <div v-if="nameError" class="error">{{ nameError }}</div>
+          </div>
 
-        <div class="form-group">
-          <label>Опис (необов’язково)</label>
-          <textarea v-model="newProject.description" rows="3"></textarea>
-        </div>
+          <div class="form-group">
+            <label>Опис (необов’язково)</label>
+            <textarea v-model="newProject.description" rows="3"></textarea>
+          </div>
 
-        <div class="modal-actions">
-          <button @click="closeModal" class="btn btn-secondary">
-            Скасувати
-          </button>
-          <button
-            @click="createProject"
-            class="btn btn-primary"
-            :disabled="!newProject.name.trim()"
-          >
-            Створити
-          </button>
+          <div class="modal-actions">
+            <button @click="closeModal" class="btn btn-secondary">
+              Скасувати
+            </button>
+            <button
+              @click="createProject"
+              class="btn btn-primary"
+              :disabled="projectsStore.loading || !newProject.name.trim()"
+            >
+              {{ projectsStore.loading ? "Створюється..." : "Створити" }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -56,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import ProjectTable from "../components/ProjectTable.vue";
 import { useProjectsStore } from "../stores/projects";
@@ -66,39 +75,44 @@ const router = useRouter();
 
 const searchQuery = ref("");
 const showAddProjectModal = ref(false);
-const newProject = ref({
-  name: "",
-  description: "",
-});
+const newProject = ref({ name: "", description: "" });
 const nameError = ref("");
 
-const filteredProjects = computed(() => {
-  if (!searchQuery.value.trim()) return projectsStore.sortedProjects;
-  const q = searchQuery.value.toLowerCase();
-  return projectsStore.sortedProjects.filter((p) =>
-    p.name.toLowerCase().includes(q),
-  );
+onMounted(() => {
+  projectsStore.fetchProjects();
 });
 
-function goToProject(projectId: number) {
-  router.push(`/project/${projectId}`);
-}
+const filteredProjects = computed(() => {
+  if (!searchQuery.value.trim()) return projectsStore.projects;
+  const q = searchQuery.value.toLowerCase();
+  return projectsStore.projects.filter((p) => p.name.toLowerCase().includes(q));
+});
 
-function createProject() {
+function goToProject(id: number | string) {
+  const numericId = Number(id);
+  if (!isNaN(numericId)) {
+    router.push(`/project/${numericId}`);
+  }
+}
+async function createProject() {
   if (!newProject.value.name.trim()) {
     nameError.value = "Назва обов’язкова";
     return;
   }
 
-  projectsStore.addProject(
+  const created = await projectsStore.addProject(
     newProject.value.name.trim(),
     newProject.value.description.trim() || undefined,
   );
 
-  // очищаємо форму і закриваємо модалку
-  newProject.value = { name: "", description: "" };
-  nameError.value = "";
-  showAddProjectModal.value = false;
+  if (created) {
+    // очищення після успішного створення
+    newProject.value = { name: "", description: "" };
+    nameError.value = "";
+    showAddProjectModal.value = false;
+  } else {
+    nameError.value = "Не вдалося створити проєкт";
+  }
 }
 
 function closeModal() {
@@ -205,5 +219,16 @@ function closeModal() {
   gap: 1rem;
   justify-content: flex-end;
   margin-top: 1.5rem;
+}
+.loading,
+.error-message {
+  text-align: center;
+  padding: 3rem;
+  font-size: 1.1rem;
+  color: #4b5563;
+}
+
+.error-message {
+  color: #dc2626;
 }
 </style>

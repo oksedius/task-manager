@@ -13,12 +13,12 @@
         <tr
           v-for="project in projects"
           :key="project.id"
-          @click="emit('row-click', project.id)"
+          @click="emit('row-click', String(project.id))"
           class="clickable-row"
         >
           <td>{{ project.id }}</td>
           <td>{{ project.name }}</td>
-          <td>{{ getTaskCount(project.id) }}</td>
+          <td>{{ getTaskCount(String(project.id)) }}</td>
           <td>{{ formatDate(project.createdAt) }}</td>
         </tr>
         <tr v-if="!projects.length">
@@ -40,13 +40,13 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'row-click', projectId: number): void
+  (e: 'row-click', projectId: string): void
 }>()
 
 const tasksStore = useTasksStore()
 
-function getTaskCount(projectId: number): number {
-  return tasksStore.getTasksByProject(projectId).length
+function getTaskCount(projectId: string): number {
+  return tasksStore.getTasksByProject(projectId).value.length
 }
 
 function formatDate(iso: string): string {

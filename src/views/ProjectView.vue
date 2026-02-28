@@ -1,67 +1,81 @@
 <template>
-  <div class="project-page" v-if="project">
-    <div class="header">
-      <h1>{{ project.name }}</h1>
-      <p v-if="project.description" class="description">
-        {{ project.description }}
-      </p>
-      <div class="back" @click="router.back()">
-        ← Назад до списку проєктів
+  <div class="project-page">
+    <div v-if="projectsStore.loading || tasksStore.loading" class="loading">
+      Завантаження даних...
+    </div>
+    <div
+      v-else-if="projectsStore.error || tasksStore.error"
+      class="error-message"
+    >
+      {{ projectsStore.error || tasksStore.error }}
+      <button @click="reloadData">Спробувати ще раз</button>
+    </div>
+    <div v-else-if="project">
+      <div class="header">
+        <h1>{{ project.name }}</h1>
+        <p v-if="project.description" class="description">
+          {{ project.description }}
+        </p>
+        <div class="back" @click="router.back()">
+          ← Назад до списку проєктів
+        </div>
       </div>
+
+      <div class="mode-switch">
+        <button
+          :class="{ active: viewMode === 'table' }"
+          @click="viewMode = 'table'"
+        >
+          Таблиця
+        </button>
+        <button
+          :class="{ active: viewMode === 'kanban' }"
+          @click="viewMode = 'kanban'"
+        >
+          Канбан
+        </button>
+      </div>
+
+      <div class="controls">
+        <button
+          class="btn btn-primary"
+          @click="openTaskModal()"
+          :disabled="tasksStore.loading"
+        >
+          + Додати завдання
+        </button>
+      </div>
+
+      <TaskTable
+        v-if="viewMode === 'table'"
+        :tasks="filteredTasks"
+        @edit="openTaskModal"
+      />
+
+      <KanbanBoard
+        v-if="viewMode === 'kanban'"
+        :tasks="filteredTasks"
+        @task-moved="handleTaskMoved"
+      />
+
+      <TaskModal
+        :show="showTaskModal"
+        :task="editingTask"
+        :project-id="Number(projectId)"
+        @save="saveTask"
+        @close="closeTaskModal"
+      />
     </div>
 
-    <div class="mode-switch">
-      <button
-        :class="{ active: viewMode === 'table' }"
-        @click="viewMode = 'table'"
-      >
-        Таблиця
-      </button>
-      <button
-        :class="{ active: viewMode === 'kanban' }"
-        @click="viewMode = 'kanban'"
-      >
-        Канбан
-      </button>
+    <div v-else class="not-found">
+      <h2>Проєкт не знайдено</h2>
+      <router-link to="/">Повернутися на головну</router-link>
     </div>
-
-    <div class="controls">
-      <button class="btn btn-primary" @click="openTaskModal()">
-        + Додати завдання
-      </button>
-    </div>
-
-    <!-- Таблиця або Канбан залежно від режиму -->
-    <TaskTable
-      v-if="viewMode === 'table'"
-      :tasks="filteredTasks"
-      @edit="openTaskModal"
-    />
-
-    <KanbanBoard
-      v-else
-      :tasks="tasksStore.getTasksByProject(projectId)"
-      @task-moved="handleTaskMoved"
-    />
-
-    <!-- Модалка створення / редагування завдання -->
-    <TaskModal
-      :show="showTaskModal"
-      :task="editingTask"
-      :project-id="projectId"
-      @save="saveTask"
-      @close="closeTaskModal"
-    />
-  </div>
-
-  <div v-else class="not-found">
-    <h2>Проєкт не знайдено</h2>
-    <router-link to="/">Повернутися на головну</router-link>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useProjectsStore } from "../stores/projects";
 import { useTasksStore } from "../stores/tasks";
@@ -74,32 +88,39 @@ const router = useRouter();
 const projectsStore = useProjectsStore();
 const tasksStore = useTasksStore();
 
-const projectId = Number(route.params.id);
-const project = computed(() => projectsStore.getProjectById(projectId));
+const projectId = computed(() => route.params.id as string);
+const project = computed(() =>
+  projectsStore.projects.find((p) => p.id === projectId.value),
+);
 
 const viewMode = ref<"table" | "kanban">("table");
 const showTaskModal = ref(false);
 const editingTask = ref(null as any);
 
-// Завантаження збереженого режиму перегляду
-watch(
-  () => projectId,
-  (id) => {
-    const savedMode = localStorage.getItem(`project-view-mode-${id}`);
-    if (savedMode === "kanban" || savedMode === "table") {
-      viewMode.value = savedMode;
-    }
-  },
-  { immediate: true },
-);
+onMounted(async () => {
+  if (!projectsStore.projects.length) {
+    await projectsStore.fetchProjects();
+  }
+  await tasksStore.fetchTasksByProject(projectId.value);
 
-watch(viewMode, (newMode) => {
-  localStorage.setItem(`project-view-mode-${projectId}`, newMode);
+  const savedMode = localStorage.getItem(
+    `project-view-mode-${projectId.value}`,
+  );
+  if (savedMode === "kanban" || savedMode === "table") {
+    viewMode.value = savedMode;
+  }
 });
 
-// Фільтрація (можна розширити пізніше)
+watch(viewMode, (newMode) => {
+  localStorage.setItem(`project-view-mode-${projectId.value}`, newMode);
+});
+
 const filteredTasks = computed(() => {
-  return tasksStore.getTasksByProject(projectId);
+  return tasksStore.getTasksByProject(projectId.value).value;
+});
+
+const tasksByStatus = computed(() => {
+  return tasksStore.tasksByStatus(projectId.value).value;
 });
 
 function openTaskModal(task: any = null) {
@@ -112,28 +133,22 @@ function closeTaskModal() {
   editingTask.value = null;
 }
 
-function saveTask(taskData: any) {
+async function saveTask(taskData: any) {
   if (editingTask.value) {
-    // оновлення існуючого завдання (поки що просто заміна)
-    const index = tasksStore.tasks.findIndex(
-      (t) => t.id === editingTask.value.id,
-    );
-    if (index !== -1) {
-      tasksStore.tasks[index] = { ...tasksStore.tasks[index], ...taskData };
-    }
+    await tasksStore.updateTask(editingTask.value.id, taskData);
   } else {
-    tasksStore.addTask(projectId, taskData);
+    await tasksStore.addTask(projectId.value, taskData);
   }
   closeTaskModal();
 }
 
-function handleTaskMoved({ taskId, newStatus, newOrder }: any) {
-  const task = tasksStore.tasks.find((t) => t.id === taskId);
-  if (task) {
-    task.status = newStatus;
-    task.order = newOrder;
-    // сортування оновлюється автоматично через computed в Kanban
-  }
+async function handleTaskMoved({ taskId, newStatus, newOrder }: any) {
+  await tasksStore.moveTask(taskId, newStatus, newOrder);
+}
+
+function reloadData() {
+  projectsStore.fetchProjects();
+  tasksStore.fetchTasksByProject(projectId.value);
 }
 </script>
 
@@ -196,5 +211,16 @@ function handleTaskMoved({ taskId, newStatus, newOrder }: any) {
   text-align: center;
   padding: 4rem 1rem;
   color: #4b5563;
+}
+.loading,
+.error-message {
+  text-align: center;
+  padding: 4rem 1rem;
+  font-size: 1.2rem;
+}
+
+.error-message button {
+  margin-top: 1rem;
+  padding: 0.6rem 1.2rem;
 }
 </style>

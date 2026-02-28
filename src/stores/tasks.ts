@@ -1,157 +1,161 @@
 import { defineStore } from 'pinia'
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import type { Task, TaskStatus } from '../types/task'
+import { tasksApi } from '../api'
 
 export const useTasksStore = defineStore('tasks', () => {
   const tasks = ref<Task[]>([])
+  const loading = ref(false)
+  const error = ref<string | null>(null)
 
-  // --------------------------------------------------------------------------
-  // Computed / Getters
-  // --------------------------------------------------------------------------
-  const getTasksByProject = (projectId: number) => {
-    return tasks.value.filter(t => t.projectId === projectId)
-  }
-
-  const getTaskById = (taskId: number) => {
-    return tasks.value.find(t => t.id === taskId)
-  }
-
-  const tasksByStatus = (projectId: number) => computed(() => {
-    const projectTasks = getTasksByProject(projectId)
-
-    const grouped = {
-      todo: [] as Task[],
-      'in-progress': [] as Task[],
-      done: [] as Task[]
+  // ──────────────────────────────────────────────
+  // Завантаження завдань для конкретного проєкту
+  // ──────────────────────────────────────────────
+  async function fetchTasksByProject(projectId: string) {
+    loading.value = true
+    error.value = null
+    try {
+      const { data } = await tasksApi.getByProject(String(projectId))
+      tasks.value = data.map((t: any) => ({
+        ...t,
+        id: String(t.id),
+        projectId: String(t.projectId)
+      }))
+    } catch (err: any) {
+      error.value = err.message || 'Не вдалося завантажити завдання'
+      console.error('fetchTasksByProject error:', err)
+    } finally {
+      loading.value = false
     }
+  }
 
-    projectTasks.forEach(task => {
-      if (grouped[task.status]) {
-        grouped[task.status].push(task)
+  // ──────────────────────────────────────────────
+  // Додати нове завдання
+  // ──────────────────────────────────────────────
+  async function addTask(projectId: string, taskData: Omit<Task, 'id' | 'projectId' | 'order'>) {
+    loading.value = true
+    error.value = null
+    try {
+      const currentTasks = tasks.value.filter(t => t.projectId === String(projectId) && t.status === taskData.status)
+      const maxOrder = currentTasks.length ? Math.max(...currentTasks.map(t => t.order || 0)) : 0
+
+      const payload = {
+        ...taskData,
+        projectId: String(projectId),
+        order: maxOrder + 1,
       }
-    })
 
-    // Сортуємо всередині кожної групи за order
-    Object.values(grouped).forEach(group => {
-      group.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-    })
-
-    return grouped
-  })
-
-  // --------------------------------------------------------------------------
-  // Actions
-  // --------------------------------------------------------------------------
-  function addTask(projectId: number, taskData: Omit<Task, 'id' | 'projectId' | 'order'>) {
-    const newId = tasks.value.length
-      ? Math.max(...tasks.value.map(t => t.id)) + 1
-      : 1
-
-    // Знаходимо максимальний order у цьому проєкті для нового статусу
-    const sameStatusTasks = tasks.value
-      .filter(t => t.projectId === projectId && t.status === taskData.status)
-      .sort((a, b) => (b.order ?? 0) - (a.order ?? 0))
-
-    const maxOrder = sameStatusTasks.length ? (sameStatusTasks[0]?.order ?? 0) : 0
-
-    const newTask: Task = {
-      id: newId,
-      projectId,
-      ...taskData,
-      order: maxOrder + 1
-    }
-
-    tasks.value.push(newTask)
-    return newTask
-  }
-
-  function updateTask(taskId: number, updates: Partial<Omit<Task, 'id' | 'projectId'>>) {
-    const task = getTaskById(taskId)
-    if (task) {
-      Object.assign(task, updates)
-
-      // Якщо змінився статус — перераховуємо order у новій колонці
-      if (updates.status) {
-        reindexOrdersInStatus(task.projectId, updates.status)
+      const { data } = await tasksApi.create(payload)
+      const newTask = {
+        ...data,
+        id: String(data.id),
+        projectId: String(data.projectId)
       }
+      tasks.value.push(newTask)
+      return newTask
+    } catch (err: any) {
+      error.value = err.message || 'Не вдалося створити завдання'
+      console.error('addTask error:', err)
+      return null
+    } finally {
+      loading.value = false
     }
   }
 
-  function deleteTask(taskId: number) {
-    const task = getTaskById(taskId)
-    if (task) {
-      tasks.value = tasks.value.filter(t => t.id !== taskId)
-      // Після видалення можна переіндексувати колонку, але не обов'язково
+  // ──────────────────────────────────────────────
+  // Оновити завдання (включаючи зміну статусу та порядку)
+  // ──────────────────────────────────────────────
+  async function updateTask(taskId: string, updates: Partial<Task>) {
+    loading.value = true
+    error.value = null
+    try {
+      const { data } = await tasksApi.update(String(taskId), updates)
+      const updatedTask = {
+        ...data,
+        id: String(data.id),
+        projectId: String(data.projectId)
+      }
+      const index = tasks.value.findIndex(t => t.id === String(taskId))
+      if (index !== -1) {
+        tasks.value[index] = { ...tasks.value[index], ...updatedTask }
+      }
+      return updatedTask
+    } catch (err: any) {
+      error.value = err.message || 'Помилка оновлення завдання'
+      console.error(`Помилка оновлення завдання ${taskId}:`, err)
+      return null
+    } finally {
+      loading.value = false
     }
   }
 
-  function moveTask(taskId: number, newStatus: TaskStatus, newOrder: number) {
-    const task = getTaskById(taskId)
+  // ──────────────────────────────────────────────
+  // Видалити завдання
+  // ──────────────────────────────────────────────
+  async function deleteTask(taskId: string) {
+    loading.value = true
+    error.value = null
+    try {
+      await tasksApi.delete(String(taskId))
+      tasks.value = tasks.value.filter(t => t.id !== String(taskId))
+    } catch (err: any) {
+      error.value = err.message || 'Помилка видалення завдання'
+      console.error(`Помилка видалення завдання ${taskId}:`, err)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // ──────────────────────────────────────────────
+  // Переміщення завдання (зміна статусу + порядку)
+  // ──────────────────────────────────────────────
+  async function moveTask(taskId: string, newStatus: TaskStatus, newOrder: number) {
+    const task = tasks.value.find(t => t.id === String(taskId))
     if (!task) return
 
-    const oldStatus = task.status
-
-    // Якщо статус не змінився — просто змінюємо order
-    if (oldStatus === newStatus) {
+    try {
+      await updateTask(String(taskId), { status: newStatus, order: newOrder })
+      task.status = newStatus
       task.order = newOrder
-      reindexOrdersInStatus(task.projectId, newStatus)
-      return
+    } catch (err) {
+      console.error('Помилка переміщення завдання:', err)
     }
-
-    // Якщо статус змінився
-    task.status = newStatus
-    task.order = newOrder
-
-    // Переіндексуємо обидві колонки
-    reindexOrdersInStatus(task.projectId, oldStatus)
-    reindexOrdersInStatus(task.projectId, newStatus)
   }
 
-  // Допоміжна функція — переприсвоює order від 1 і далі в межах статусу + проєкту
-  function reindexOrdersInStatus(projectId: number, status: TaskStatus) {
-    const relevantTasks = tasks.value
-      .filter(t => t.projectId === projectId && t.status === status)
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+  // Computed-гетери
+  const getTasksByProject = (projectId: string) =>
+    computed(() => tasks.value.filter(t => t.projectId === String(projectId)))
 
-    relevantTasks.forEach((task, index) => {
-      task.order = index + 1
-    })
-  }
-
-  // --------------------------------------------------------------------------
-  // Persistence
-  // --------------------------------------------------------------------------
-  function loadTasks() {
-    const saved = localStorage.getItem('tasks')
-    if (saved) {
-      try {
-        tasks.value = JSON.parse(saved)
-      } catch (e) {
-        console.error('Помилка парсингу tasks з localStorage:', e)
+  const tasksByStatus = (projectId: string) =>
+    computed(() => {
+      const projectTasks = getTasksByProject(String(projectId)).value
+      const grouped: Record<TaskStatus, Task[]> = {
+        todo: [],
+        'in-progress': [],
+        done: [],
       }
-    }
-  }
 
-  function saveTasks() {
-    localStorage.setItem('tasks', JSON.stringify(tasks.value))
-  }
+      projectTasks.forEach(t => {
+        if (t.status in grouped) grouped[t.status].push(t)
+      })
 
-  // Ініціалізація
-  loadTasks()
+      Object.values(grouped).forEach(arr => {
+        arr.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      })
 
-  // Автозбереження
-  watch(tasks, saveTasks, { deep: true })
+      return grouped
+    })
 
   return {
     tasks,
-    getTasksByProject,
-    getTaskById,
-    tasksByStatus,
+    loading,
+    error,
+    fetchTasksByProject,
     addTask,
     updateTask,
     deleteTask,
-    moveTask
+    moveTask,
+    getTasksByProject,
+    tasksByStatus,
   }
-}, {
-  persist: true
 })

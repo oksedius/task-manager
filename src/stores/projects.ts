@@ -1,85 +1,127 @@
 import { defineStore } from 'pinia'
-import { ref, computed, watch } from 'vue'
+import { ref } from 'vue'
 import type { Project } from '../types/project'
+import { projectsApi } from '../api'   
 
 export const useProjectsStore = defineStore('projects', () => {
   const projects = ref<Project[]>([])
+  const loading = ref(false)
+  const error = ref<string | null>(null)
 
-  // --------------------------------------------------------------------------
-  // Computed / Getters
-  // --------------------------------------------------------------------------
-  const sortedProjects = computed(() => {
-    return [...projects.value].sort((a, b) => a.id - b.id)
-  })
-
-  const getProjectById = (id: number) => {
-    return projects.value.find(p => p.id === id)
-  }
-
-  // --------------------------------------------------------------------------
-  // Actions
-  // --------------------------------------------------------------------------
-  function addProject(name: string, description?: string) {
-    const newId = projects.value.length
-      ? Math.max(...projects.value.map(p => p.id)) + 1
-      : 1
-
-    const project: Project = {
-      id: newId,
-      name: name.trim(),
-      description: description?.trim(),
-      createdAt: new Date().toISOString()
-    }
-
-    projects.value.push(project)
-    return project
-  }
-
-  function updateProject(id: number, updates: Partial<Pick<Project, 'name' | 'description'>>) {
-    const project = getProjectById(id)
-    if (project) {
-      if (updates.name) project.name = updates.name.trim()
-      if (updates.description !== undefined) project.description = updates.description?.trim()
+  // ──────────────────────────────────────────────
+  // Завантаження всіх проєктів
+  // ──────────────────────────────────────────────
+  async function fetchProjects() {
+    loading.value = true
+    error.value = null
+    try {
+      const { data } = await projectsApi.getAll()
+      projects.value = data.map((p: any) => ({
+        ...p,
+        id: String(p.id)
+      }))
+    } catch (err: any) {
+      error.value = err.message || 'Помилка завантаження проєктів'
+      console.error('fetchProjects error:', err)
+    } finally {
+      loading.value = false
     }
   }
 
-  function deleteProject(id: number) {
-    projects.value = projects.value.filter(p => p.id !== id)
-    // також можна видалити всі пов'язані завдання (опціонально)
+  // ──────────────────────────────────────────────
+  // Отримати один проєкт за id
+  // ──────────────────────────────────────────────
+  async function fetchProjectById(id: string) {
+    loading.value = true
+    error.value = null
+    try {
+      const { data } = await projectsApi.getById(id)
+      return { ...data, id: String(data.id) } as Project
+    } catch (err: any) {
+      error.value = err.message || 'Помилка завантаження проєкту'
+      console.error(`Помилка завантаження проєкту ${id}:`, err)
+      return null
+    } finally {
+      loading.value = false
+    }
   }
 
-  // --------------------------------------------------------------------------
-  // Persistence (localStorage)
-  // --------------------------------------------------------------------------
-  function loadProjects() {
-    const saved = localStorage.getItem('projects')
-    if (saved) {
-      try {
-        projects.value = JSON.parse(saved)
-      } catch (e) {
-        console.error('Помилка парсингу projects з localStorage:', e)
+  // ──────────────────────────────────────────────
+  // Додати новий проєкт
+  // ──────────────────────────────────────────────
+  async function addProject(name: string, description?: string) {
+    loading.value = true
+    error.value = null
+    try {
+      const payload = {
+        name: name.trim(),
+        description: description?.trim(),
+        createdAt: new Date().toISOString(),
       }
+      const { data } = await projectsApi.create(payload)
+      const newProject = { ...data, id: String(data.id) }
+      projects.value.push(newProject)
+      return newProject
+    } catch (err: any) {
+      error.value = err.message || 'Не вдалося створити проєкт'
+      console.error('addProject error:', err)
+      return null
+    } finally {
+      loading.value = false
     }
   }
 
-  function saveProjects() {
-    localStorage.setItem('projects', JSON.stringify(projects.value))
+  // ──────────────────────────────────────────────
+  // Оновити проєкт
+  // ──────────────────────────────────────────────
+  async function updateProject(id: string, updates: Partial<Pick<Project, 'name' | 'description'>>) {
+    loading.value = true
+    error.value = null
+    try {
+      const { data } = await projectsApi.update(id, updates)
+      const updatedProject = { ...data, id: String(data.id) }
+      const index = projects.value.findIndex(p => p.id === id)
+      if (index !== -1) {
+        projects.value[index] = { ...projects.value[index], ...updatedProject }
+      }
+      return updatedProject
+    } catch (err: any) {
+      error.value = err.message || 'Помилка оновлення проєкту'
+      console.error(`Помилка оновлення проєкту ${id}:`, err)
+      return null
+    } finally {
+      loading.value = false
+    }
   }
 
-  // Ініціалізація
-  loadProjects()
+  // ──────────────────────────────────────────────
+  // Видалити проєкт
+  // ──────────────────────────────────────────────
+  async function deleteProject(id: string) {
+    loading.value = true
+    error.value = null
+    try {
+      await projectsApi.delete(id)
+      projects.value = projects.value.filter(p => p.id !== id)
+    } catch (err: any) {
+      error.value = err.message || 'Помилка видалення проєкту'
+      console.error(`Помилка видалення проєкту ${id}:`, err)
+    } finally {
+      loading.value = false
+    }
+  }
 
-  // Автозбереження при зміні
-  watch(projects, saveProjects, { deep: true })
+  // Початкове завантаження при створенні стора
+  fetchProjects()
 
   return {
     projects,
-    sortedProjects,
-    getProjectById,
+    loading,
+    error,
+    fetchProjects,
+    fetchProjectById,
     addProject,
     updateProject,
-    deleteProject
+    deleteProject,
   }
-}, {
-  persist: true
 })

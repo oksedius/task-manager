@@ -49,7 +49,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'task-moved', payload: { taskId: number; newStatus: Task['status']; newOrder: number }): void
+  (e: 'task-moved', payload: { taskId: string; newStatus: Task['status']; newOrder: number }): void
 }>()
 
 const statusOrder = ['todo', 'in-progress', 'done'] as const
@@ -67,7 +67,6 @@ const columns = computed(() => {
     }
   })
 
-  // сортуємо за order в кожній колонці
   Object.values(grouped).forEach(arr => {
     arr.sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
   })
@@ -83,9 +82,11 @@ let draggedTask: Task | null = null
 
 function onDragStart(e: DragEvent, task: Task) {
   draggedTask = task
-  e.dataTransfer?.setData('text/plain', task.id.toString())
-  // можна додати клас dragged для стилізації
-  ;(e.target as HTMLElement).classList.add('dragging')
+  e.dataTransfer?.setData('text/plain', task.id)
+
+  const target = e.target as HTMLElement
+  target.classList.add('dragging')
+  target.dataset.taskId = task.id
 }
 
 function onDragEnd(e: DragEvent) {
@@ -102,12 +103,13 @@ function onDrop(e: DragEvent, newStatus: Task['status']) {
 
   // визначаємо позицію дропу всередині колонки
   const columnTasks = target.closest('.column-tasks')
-  const cardElements = columnTasks?.querySelectorAll('.kanban-card') || document.querySelectorAll('.kanban-card:not([style*="display: none"])')
+  const cardElements = columnTasks?.querySelectorAll('.kanban-card:not(.dragging)') || []
   const afterElement = getDragAfterElement(cardElements as NodeListOf<Element>, e.clientY)
 
   if (afterElement) {
-    const nextTask = props.tasks.find(t => t.id === Number((afterElement as HTMLElement).dataset.id))
-    newOrder = (nextTask?.order ?? 0) - 0.5 // вставляємо перед наступним
+    const nextTaskId = (afterElement as HTMLElement).dataset.taskId
+    const nextTask = props.tasks.find(t => t.id === nextTaskId)
+    newOrder = (nextTask?.order ?? 0) - 0.5
   } else {
     // якщо дроп в кінець колонки
     const lastInColumn = columns.value
@@ -116,7 +118,7 @@ function onDrop(e: DragEvent, newStatus: Task['status']) {
   }
 
   // якщо статус не змінився і порядок той самий — нічого не робимо
-  if (draggedTask.status === newStatus && draggedTask.order === newOrder) {
+  if (draggedTask.status === newStatus && Math.abs(draggedTask.order - newOrder) < 0.01) {
     return
   }
 
@@ -128,7 +130,7 @@ function onDrop(e: DragEvent, newStatus: Task['status']) {
 }
 
 function getDragAfterElement(container: NodeListOf<Element>, y: number) {
-  const draggableElements = [...container].filter(el => !el.classList.contains('dragging'))
+  const draggableElements = [...container]
 
   return draggableElements.reduce(
     (closest, child) => {

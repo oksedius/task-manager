@@ -14,7 +14,7 @@ const router = createRouter({
       path: "/project/:id",
       name: "project",
       component: ProjectView,
-      props: (route) => ({ id: Number(route.params.id) }),
+      props: (route) => ({ id: route.params.id }),
     },
   ],
 });
