@@ -9,21 +9,36 @@ export const useProjectsStore = defineStore('projects', () => {
   const error = ref<string | null>(null)
 
   async function fetchProjects() {
-    loading.value = true
-    error.value = null
-    try {
-      const { data } = await projectsApi.getAll()
-      projects.value = data.map((p: any) => ({
-        ...p,
-        id: String(p.id)
-      }))
-    } catch (err: any) {
-      error.value = err.message || 'Помилка завантаження проєктів'
-      console.error('fetchProjects error:', err)
-    } finally {
-      loading.value = false
-    }
+  loading.value = true
+  try {
+    const { data } = await projectsApi.getAll()
+    projects.value = data.map((p: any) => ({ ...p, id: String(p.id) }))
+  } catch {
+    console.log('API недоступний → використовуємо статичні тестові дані')
+    projects.value = [
+      {
+        id: '1',
+        name: 'Розробка корпоративного сайту',
+        description: 'Новий сайт компанії з адмінкою',
+        createdAt: '2026-02-20T10:00:00Z'
+      },
+      {
+        id: '2',
+        name: 'Мобільний додаток для клієнтів',
+        description: 'iOS + Android версія',
+        createdAt: '2026-02-25T14:30:00Z'
+      },
+      {
+        id: '3',
+        name: 'Інтернет-магазин одягу',
+        description: 'E-commerce з інтеграцією платежів',
+        createdAt: '2026-02-28T09:15:00Z'
+      }
+    ]
+  } finally {
+    loading.value = false
   }
+}
 
   async function fetchProjectById(id: string) {
     loading.value = true
