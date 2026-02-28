@@ -27,7 +27,6 @@
         @delete-project="confirmDeleteProject"
       />
 
-      <!-- Модальне вікно створення проєкту -->
       <div
         v-if="showAddProjectModal"
         class="modal-overlay"
@@ -65,7 +64,6 @@
         </div>
       </div>
 
-      <!-- Модальне вікно підтвердження видалення -->
       <div
         v-if="showDeleteModal"
         class="modal-overlay"
@@ -181,7 +179,6 @@ async function handleDeleteProject() {
 
   await projectsStore.deleteProject(projectId);
 
-  // Видалити всі завдання цього проєкту
   const projectTasks = tasksStore.getTasksByProject(projectId).value;
   for (const task of projectTasks) {
     await tasksStore.deleteTask(task.id);

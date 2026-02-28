@@ -91,12 +91,12 @@ const form = ref<{
   title: string
   assignee: string
   status: Task['status'] | ''
-  dueDate: string | undefined   // ← ось зміна
+  dueDate: string | undefined
 }>({
   title: '',
   assignee: '',
   status: '',
-  dueDate: undefined             // ← замість ''
+  dueDate: undefined
 })
 
 const errors = ref({
@@ -123,7 +123,7 @@ watch(
         title: newTask.title,
         assignee: newTask.assignee || '',
         status: newTask.status,
-        dueDate: (newTask.dueDate || '').split('T')[0] // для input type="date"
+        dueDate: (newTask.dueDate || '').split('T')[0]
       }
     } else {
       form.value = {

@@ -101,7 +101,6 @@ function onDrop(e: DragEvent, newStatus: Task['status']) {
   const target = e.target as HTMLElement
   let newOrder = 0
 
-  // визначаємо позицію дропу всередині колонки
   const columnTasks = target.closest('.column-tasks')
   const cardElements = columnTasks?.querySelectorAll('.kanban-card:not(.dragging)') || []
   const afterElement = getDragAfterElement(cardElements as NodeListOf<Element>, e.clientY)
@@ -111,13 +110,11 @@ function onDrop(e: DragEvent, newStatus: Task['status']) {
     const nextTask = props.tasks.find(t => t.id === nextTaskId)
     newOrder = (nextTask?.order ?? 0) - 0.5
   } else {
-    // якщо дроп в кінець колонки
     const lastInColumn = columns.value
       .find(c => c.status === newStatus)?.tasks.slice(-1)[0]
     newOrder = (lastInColumn?.order ?? 0) + 1
   }
 
-  // якщо статус не змінився і порядок той самий — нічого не робимо
   if (draggedTask.status === newStatus && Math.abs(draggedTask.order - newOrder) < 0.01) {
     return
   }

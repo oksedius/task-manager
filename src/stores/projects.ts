@@ -8,9 +8,6 @@ export const useProjectsStore = defineStore('projects', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  // ──────────────────────────────────────────────
-  // Завантаження всіх проєктів
-  // ──────────────────────────────────────────────
   async function fetchProjects() {
     loading.value = true
     error.value = null
@@ -28,9 +25,6 @@ export const useProjectsStore = defineStore('projects', () => {
     }
   }
 
-  // ──────────────────────────────────────────────
-  // Отримати один проєкт за id
-  // ──────────────────────────────────────────────
   async function fetchProjectById(id: string) {
     loading.value = true
     error.value = null
@@ -46,9 +40,6 @@ export const useProjectsStore = defineStore('projects', () => {
     }
   }
 
-  // ──────────────────────────────────────────────
-  // Додати новий проєкт
-  // ──────────────────────────────────────────────
   async function addProject(name: string, description?: string) {
     loading.value = true
     error.value = null
@@ -71,9 +62,6 @@ export const useProjectsStore = defineStore('projects', () => {
     }
   }
 
-  // ──────────────────────────────────────────────
-  // Оновити проєкт
-  // ──────────────────────────────────────────────
   async function updateProject(id: string, updates: Partial<Pick<Project, 'name' | 'description'>>) {
     loading.value = true
     error.value = null
@@ -94,9 +82,6 @@ export const useProjectsStore = defineStore('projects', () => {
     }
   }
 
-  // ──────────────────────────────────────────────
-  // Видалити проєкт
-  // ──────────────────────────────────────────────
   async function deleteProject(id: string) {
     loading.value = true
     error.value = null
@@ -111,7 +96,6 @@ export const useProjectsStore = defineStore('projects', () => {
     }
   }
 
-  // Початкове завантаження при створенні стора
   fetchProjects()
 
   return {

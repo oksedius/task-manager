@@ -8,9 +8,6 @@ export const useTasksStore = defineStore('tasks', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  // ──────────────────────────────────────────────
-  // Завантаження завдань для конкретного проєкту
-  // ──────────────────────────────────────────────
   async function fetchTasksByProject(projectId: string) {
     loading.value = true
     error.value = null
@@ -29,9 +26,6 @@ export const useTasksStore = defineStore('tasks', () => {
     }
   }
 
-  // ──────────────────────────────────────────────
-  // Додати нове завдання
-  // ──────────────────────────────────────────────
   async function addTask(projectId: string, taskData: Omit<Task, 'id' | 'projectId' | 'order'>) {
     loading.value = true
     error.value = null
@@ -62,9 +56,6 @@ export const useTasksStore = defineStore('tasks', () => {
     }
   }
 
-  // ──────────────────────────────────────────────
-  // Оновити завдання (включаючи зміну статусу та порядку)
-  // ──────────────────────────────────────────────
   async function updateTask(taskId: string, updates: Partial<Task>) {
     loading.value = true
     error.value = null
@@ -89,9 +80,6 @@ export const useTasksStore = defineStore('tasks', () => {
     }
   }
 
-  // ──────────────────────────────────────────────
-  // Видалити завдання
-  // ──────────────────────────────────────────────
   async function deleteTask(taskId: string) {
     loading.value = true
     error.value = null
@@ -106,9 +94,6 @@ export const useTasksStore = defineStore('tasks', () => {
     }
   }
 
-  // ──────────────────────────────────────────────
-  // Переміщення завдання (зміна статусу + порядку)
-  // ──────────────────────────────────────────────
   async function moveTask(taskId: string, newStatus: TaskStatus, newOrder: number) {
     const task = tasks.value.find(t => t.id === String(taskId))
     if (!task) return
@@ -121,8 +106,7 @@ export const useTasksStore = defineStore('tasks', () => {
       console.error('Помилка переміщення завдання:', err)
     }
   }
-
-  // Computed-гетери
+  
   const getTasksByProject = (projectId: string) =>
     computed(() => tasks.value.filter(t => t.projectId === String(projectId)))
 

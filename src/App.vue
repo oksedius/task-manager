@@ -1,19 +1,5 @@
 <template>
   <div class="app-wrapper">
-    <header class="app-header">
-      <div class="container header-content">
-        <router-link to="/" class="logo">
-          <h1>Task Manager</h1>
-        </router-link>
-
-        <nav v-if="$route.path !== '/'">
-          <router-link to="/" class="back-link">
-            ← Назад до списку проєктів
-          </router-link>
-        </nav>
-      </div>
-    </header>
-
     <main class="app-main">
       <router-view v-slot="{ Component }">
         <transition name="fade" mode="out-in">
@@ -94,7 +80,6 @@ const currentYear = computed(() => new Date().getFullYear());
   font-size: 0.875rem;
 }
 
-/* Проста анімація переходів між сторінками */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.25s ease;
@@ -105,7 +90,6 @@ const currentYear = computed(() => new Date().getFullYear());
   opacity: 0;
 }
 
-/* Мобільна адаптивність */
 @media (max-width: 768px) {
   .header-content {
     flex-direction: column;

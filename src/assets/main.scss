@@ -1,6 +1,5 @@
 // src/assets/main.scss
 
-// Базові змінні (можна розширити)
 :root {
   --primary: #2563eb;
   --primary-dark: #1d4ed8;
@@ -23,7 +22,6 @@
     0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-// Reset та базові стилі
 * {
   margin: 0;
   padding: 0;
@@ -73,7 +71,6 @@ select {
   font-size: inherit;
 }
 
-// Утиліти (можна використовувати в компонентах)
 .btn {
   padding: 0.6rem 1.2rem;
   border-radius: var(--border-radius);
@@ -130,7 +127,6 @@ select {
   text-align: center;
 }
 
-// Додаткові класи для статусів (використовуються в TaskTable та Kanban)
 .status-badge {
   padding: 0.35rem 0.8rem;
   border-radius: 9999px;
@@ -154,7 +150,6 @@ select {
   }
 }
 
-// Для overdue дат
 .overdue {
   color: var(--danger) !important;
   font-weight: 600;

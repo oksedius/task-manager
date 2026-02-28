@@ -97,7 +97,6 @@ const statusLabels = {
 const sortedAndFilteredTasks = computed(() => {
   let result = [...props.tasks]
 
-  // фільтр за виконавцем
   if (searchAssignee.value.trim()) {
     const q = searchAssignee.value.toLowerCase().trim()
     result = result.filter(t =>
@@ -105,12 +104,10 @@ const sortedAndFilteredTasks = computed(() => {
     )
   }
 
-  // фільтр за статусом
   if (filterStatus.value) {
     result = result.filter(t => t.status === filterStatus.value)
   }
 
-  // сортування
   result.sort((a, b) => {
     let valA = a[sortKey.value]
     let valB = b[sortKey.value]
