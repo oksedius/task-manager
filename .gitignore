@@ -7,13 +7,16 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Дані розробки
 db.json
+
+# Залежності
 node_modules
 dist
 dist-ssr
 *.local
 
-# Editor directories and files
+# Редактори
 .vscode/*
 !.vscode/extensions.json
 .idea
