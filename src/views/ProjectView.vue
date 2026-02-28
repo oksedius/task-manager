@@ -119,10 +119,6 @@ const filteredTasks = computed(() => {
   return tasksStore.getTasksByProject(projectId.value).value;
 });
 
-const tasksByStatus = computed(() => {
-  return tasksStore.tasksByStatus(projectId.value).value;
-});
-
 function openTaskModal(task: any = null) {
   editingTask.value = task ? { ...task } : null;
   showTaskModal.value = true;

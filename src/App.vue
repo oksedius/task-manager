@@ -10,14 +10,7 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { computed } from "vue";
-import { useRoute } from "vue-router";
-
-const route = useRoute();
-
-const currentYear = computed(() => new Date().getFullYear());
-</script>
+<script setup lang="ts"></script>
 
 <style scoped>
 .app-wrapper {
