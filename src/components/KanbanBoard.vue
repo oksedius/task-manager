@@ -52,7 +52,7 @@ const emit = defineEmits<{
   (e: 'task-moved', payload: { taskId: string; newStatus: Task['status']; newOrder: number }): void
 }>()
 
-const statusOrder = ['todo', 'in-progress', 'done'] as const
+// const statusOrder = ['todo', 'in-progress', 'done'] as const
 
 const columns = computed(() => {
   const grouped = {

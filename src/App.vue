@@ -21,12 +21,6 @@
         </transition>
       </router-view>
     </main>
-
-    <footer class="app-footer">
-      <div class="container">
-        <p>Тестове завдання · Vue 3 + Pinia + TypeScript · {{ currentYear }}</p>
-      </div>
-    </footer>
   </div>
 </template>
 

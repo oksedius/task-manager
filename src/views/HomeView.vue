@@ -21,7 +21,11 @@
         </button>
       </div>
 
-      <ProjectTable :projects="filteredProjects" @row-click="goToProject" />
+      <ProjectTable
+        :projects="filteredProjects"
+        @row-click="goToProject"
+        @delete-project="confirmDeleteProject"
+      />
 
       <!-- Модальне вікно створення проєкту -->
       <div
@@ -42,7 +46,7 @@
           </div>
 
           <div class="form-group">
-            <label>Опис (необов’язково)</label>
+            <label>Опис (необов'язково)</label>
             <textarea v-model="newProject.description" rows="3"></textarea>
           </div>
 
@@ -60,6 +64,40 @@
           </div>
         </div>
       </div>
+
+      <!-- Модальне вікно підтвердження видалення -->
+      <div
+        v-if="showDeleteModal"
+        class="modal-overlay"
+        @click.self="cancelDelete"
+      >
+        <div class="modal-content modal-delete">
+          <div class="delete-icon">⚠️</div>
+          <h2>Видалити проєкт?</h2>
+          <p class="delete-warning">
+            Ви впевнені, що хочете видалити проєкт
+            <strong>{{ projectToDelete?.name }}</strong
+            >?
+          </p>
+          <p class="delete-subtext">
+            Усі завдання цього проєкту також будуть видалені. Цю дію не можна
+            скасувати.
+          </p>
+
+          <div class="modal-actions">
+            <button @click="cancelDelete" class="btn btn-secondary">
+              Скасувати
+            </button>
+            <button
+              @click="handleDeleteProject"
+              class="btn btn-danger"
+              :disabled="projectsStore.loading"
+            >
+              {{ projectsStore.loading ? "Видалення..." : "Видалити" }}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -69,12 +107,17 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import ProjectTable from "../components/ProjectTable.vue";
 import { useProjectsStore } from "../stores/projects";
+import { useTasksStore } from "../stores/tasks";
+import type { Project } from "../types/project";
 
 const projectsStore = useProjectsStore();
+const tasksStore = useTasksStore();
 const router = useRouter();
 
 const searchQuery = ref("");
 const showAddProjectModal = ref(false);
+const showDeleteModal = ref(false);
+const projectToDelete = ref<Project | null>(null);
 const newProject = ref({ name: "", description: "" });
 const nameError = ref("");
 
@@ -89,14 +132,12 @@ const filteredProjects = computed(() => {
 });
 
 function goToProject(id: number | string) {
-  const numericId = Number(id);
-  if (!isNaN(numericId)) {
-    router.push(`/project/${numericId}`);
-  }
+  router.push(`/project/${id}`);
 }
+
 async function createProject() {
   if (!newProject.value.name.trim()) {
-    nameError.value = "Назва обов’язкова";
+    nameError.value = "Назва обов'язкова";
     return;
   }
 
@@ -106,7 +147,6 @@ async function createProject() {
   );
 
   if (created) {
-    // очищення після успішного створення
     newProject.value = { name: "", description: "" };
     nameError.value = "";
     showAddProjectModal.value = false;
@@ -119,6 +159,36 @@ function closeModal() {
   newProject.value = { name: "", description: "" };
   nameError.value = "";
   showAddProjectModal.value = false;
+}
+
+function confirmDeleteProject(projectId: string) {
+  const project = projectsStore.projects.find((p) => p.id === projectId);
+  if (!project) return;
+
+  projectToDelete.value = project;
+  showDeleteModal.value = true;
+}
+
+function cancelDelete() {
+  showDeleteModal.value = false;
+  projectToDelete.value = null;
+}
+
+async function handleDeleteProject() {
+  if (!projectToDelete.value) return;
+
+  const projectId = projectToDelete.value.id;
+
+  await projectsStore.deleteProject(projectId);
+
+  // Видалити всі завдання цього проєкту
+  const projectTasks = tasksStore.getTasksByProject(projectId).value;
+  for (const task of projectTasks) {
+    await tasksStore.deleteTask(task.id);
+  }
+
+  showDeleteModal.value = false;
+  projectToDelete.value = null;
 }
 </script>
 
@@ -148,6 +218,12 @@ function closeModal() {
   border-radius: 6px;
   font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-primary {
@@ -156,7 +232,7 @@ function closeModal() {
   border: none;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background: #1d4ed8;
 }
 
@@ -170,6 +246,16 @@ function closeModal() {
   background: #4b5563;
 }
 
+.btn-danger {
+  background: #dc2626;
+  color: white;
+  border: none;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
 .modal-overlay {
   position: fixed;
   inset: 0;
@@ -178,6 +264,16 @@ function closeModal() {
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  animation: fadeIn 0.2s;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .modal-content {
@@ -187,6 +283,48 @@ function closeModal() {
   width: 100%;
   max-width: 480px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  animation: slideUp 0.3s;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.modal-delete {
+  text-align: center;
+}
+
+.delete-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.modal-delete h2 {
+  color: #dc2626;
+  margin-bottom: 1rem;
+}
+
+.delete-warning {
+  font-size: 1.05rem;
+  margin-bottom: 0.5rem;
+  color: #374151;
+}
+
+.delete-warning strong {
+  color: #dc2626;
+}
+
+.delete-subtext {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin-bottom: 1.5rem;
 }
 
 .form-group {
@@ -197,6 +335,7 @@ function closeModal() {
   display: block;
   margin-bottom: 0.4rem;
   font-weight: 500;
+  text-align: left;
 }
 
 .form-group input,
@@ -217,9 +356,10 @@ function closeModal() {
 .modal-actions {
   display: flex;
   gap: 1rem;
-  justify-content: flex-end;
+  justify-content: center;
   margin-top: 1.5rem;
 }
+
 .loading,
 .error-message {
   text-align: center;

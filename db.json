@@ -1,18 +1,5 @@
 {
-  "projects": [
-    {
-      "id": "1",
-      "name": "Сайт",
-      "description": "сайт",
-      "createdAt": "2026-02-28T11:55:53.150Z"
-    },
-    {
-      "id": "9739",
-      "name": "123123",
-      "description": "123123123",
-      "createdAt": "2026-02-28T11:56:33.202Z"
-    }
-  ],
+  "projects": [],
   "tasks": [
     {
       "id": "6a4d",
@@ -20,7 +7,7 @@
       "assignee": "12312",
       "status": "in-progress",
       "dueDate": "2026-04-09T23:59:59.999Z",
-      "projectId": "9739",
+      "projectId": null,
       "order": 0
     },
     {
@@ -29,7 +16,7 @@
       "assignee": "ап",
       "status": "done",
       "dueDate": "2026-05-08T23:59:59.999Z",
-      "projectId": "1",
+      "projectId": null,
       "order": 1
     }
   ]

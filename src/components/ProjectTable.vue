@@ -7,22 +7,35 @@
           <th>Назва проєкту</th>
           <th>Завдань</th>
           <th>Створено</th>
+          <th>Дії</th>
         </tr>
       </thead>
       <tbody>
-        <tr
-          v-for="project in projects"
-          :key="project.id"
-          @click="emit('row-click', String(project.id))"
-          class="clickable-row"
-        >
-          <td>{{ project.id }}</td>
-          <td>{{ project.name }}</td>
-          <td>{{ getTaskCount(String(project.id)) }}</td>
-          <td>{{ formatDate(project.createdAt) }}</td>
+        <tr v-for="project in projects" :key="project.id" class="clickable-row">
+          <td @click="emit('row-click', String(project.id))">
+            {{ project.id }}
+          </td>
+          <td @click="emit('row-click', String(project.id))">
+            {{ project.name }}
+          </td>
+          <td @click="emit('row-click', String(project.id))">
+            {{ getTaskCount(String(project.id)) }}
+          </td>
+          <td @click="emit('row-click', String(project.id))">
+            {{ formatDate(project.createdAt) }}
+          </td>
+          <td>
+            <button
+              class="btn-delete"
+              @click.stop="emit('delete-project', project.id)"
+              title="Видалити проєкт"
+            >
+              🗑️ Видалити
+            </button>
+          </td>
         </tr>
         <tr v-if="!projects.length">
-          <td colspan="4" class="empty-message">
+          <td colspan="5" class="empty-message">
             Проєктів ще немає. Додайте перший!
           </td>
         </tr>
@@ -35,12 +48,13 @@
 import { useTasksStore } from '../stores/tasks'
 import type { Project } from '../types/project'
 
-defineProps<{
+const props = defineProps<{
   projects: Project[]
 }>()
 
 const emit = defineEmits<{
   (e: 'row-click', projectId: string): void
+  (e: 'delete-project', projectId: string): void
 }>()
 
 const tasksStore = useTasksStore()
@@ -101,5 +115,32 @@ th {
   color: #6b7280;
   padding: 3rem !important;
   font-style: italic;
+}
+
+.btn-delete {
+  padding: 0.5rem 1rem;
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.btn-delete:hover {
+  background: #fecaca;
+  border-color: #fca5a5;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.15);
+}
+
+.btn-delete:active {
+  transform: translateY(0);
+  box-shadow: none;
 }
 </style>
